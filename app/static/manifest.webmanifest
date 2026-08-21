@@ -1,0 +1,9 @@
+{
+  "name": "Weddings By Mark Control Centre",
+  "short_name": "WBM Control",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f2ec",
+  "theme_color": "#102f35",
+  "icons": [{"src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}]
+}

@@ -1,0 +1,23 @@
+name: newdashboard
+
+services:
+  dashboard:
+    build:
+      context: https://github.com/valianktni1/newdashboard.git#main
+    container_name: newdashboard
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DASHBOARD_DATA_DIR: /data
+    ports:
+      - "30046:8080"
+    volumes:
+      - /mnt/apps/newdashboard:/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777

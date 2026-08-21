@@ -1,0 +1,17 @@
+Weddings By Mark Control Centre
+Version: 1.0.0
+Build: 2026.08.20-control-centre-v1.0.0
+
+First complete release:
+
+- Secure, single-administrator control centre.
+- Modern responsive desktop, tablet and mobile interface.
+- Editable shortcut name, address, description, category, icon, colour,
+  visibility, pinned state and new-tab behaviour.
+- Add, change, delete and reorder controls.
+- Search and category filtering.
+- Editable dashboard heading, welcome text and greeting name.
+- Password change with immediate session revocation.
+- JSON configuration export and private audit history foundation.
+- Persistent SQLite storage isolated at /mnt/apps/newdashboard.
+- Docker Compose deployment on port 30046.

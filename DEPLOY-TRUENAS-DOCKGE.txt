@@ -1,0 +1,146 @@
+WEDDINGS BY MARK CONTROL CENTRE V1.0.0
+TRUENAS + DOCKGE DEPLOYMENT
+
+Target details
+--------------
+Dockge stack name: newdashboard
+Public address: https://dashboard.weddingsbymark.uk
+TrueNAS port: 30046
+Persistent dataset: /mnt/apps/newdashboard
+Expected build: 2026.08.20-control-centre-v1.0.0
+
+
+PART 1 - GITHUB DESKTOP
+-----------------------
+1. Extract the supplied ZIP into a new folder.
+2. Open that folder in GitHub Desktop.
+3. Publish it to this repository name:
+
+   newdashboard
+
+4. Commit and push every supplied file to the main branch.
+
+The included compose.yaml builds from:
+https://github.com/valianktni1/newdashboard.git#main
+
+If you deliberately choose a different repository name, change that one line
+in compose.yaml before continuing.
+
+
+PART 2 - PREPARE THE NEW, ISOLATED DATASET
+-------------------------------------------
+Run these commands in the TrueNAS shell:
+
+mkdir -p /mnt/apps/newdashboard
+
+chown -R 10001:10001 /mnt/apps/newdashboard
+
+chmod 700 /mnt/apps/newdashboard
+
+mkdir -p /mnt/apps/dockge/data/newdashboard
+
+cd /mnt/apps/dockge/data/newdashboard
+
+This does not touch the Booking System, Accounts, galleries or any other data.
+
+
+PART 3 - DOCKGE STACK AND ENVIRONMENT
+--------------------------------------
+In Dockge, create/open the stack named newdashboard and paste the complete
+contents of compose.yaml into its Compose editor.
+
+Beside its compose.yaml, create the private environment file:
+
+nano /mnt/apps/dockge/data/newdashboard/.env
+
+Paste this, replacing the password with a NEW long password used nowhere else:
+
+DASHBOARD_ADMIN_EMAIL=mark@perfectweddingsbymark.uk
+DASHBOARD_ADMIN_PASSWORD=REPLACE-WITH-A-NEW-LONG-PASSWORD
+DASHBOARD_COOKIE_SECURE=true
+DASHBOARD_SESSION_HOURS=12
+DASHBOARD_ALLOWED_HOSTS=dashboard.weddingsbymark.uk,192.168.24.10,localhost,127.0.0.1
+
+Save with Ctrl+O, Enter, then Ctrl+X.
+
+Protect the file:
+
+chmod 600 /mnt/apps/dockge/data/newdashboard/.env
+
+
+PART 4 - BUILD AND START
+-------------------------
+Run:
+
+cd /mnt/apps/dockge/data/newdashboard
+
+docker compose -f compose.yaml build dashboard
+
+docker compose -f compose.yaml up -d
+
+docker compose -f compose.yaml ps
+
+curl -sS http://127.0.0.1:30046/api/health
+
+The health response must contain:
+
+"status":"ok"
+"service":"newdashboard"
+"build":"2026.08.20-control-centre-v1.0.0"
+
+If it does not, stop and do not continue to the proxy stage.
+
+
+PART 5 - NGINX PROXY MANAGER
+-----------------------------
+Create a new Proxy Host:
+
+Domain Names: dashboard.weddingsbymark.uk
+Scheme: http
+Forward Hostname / IP: 192.168.24.10
+Forward Port: 30046
+Cache Assets: Off
+Block Common Exploits: On
+Websockets Support: On
+
+On the SSL tab:
+
+- Request a new SSL Certificate
+- Force SSL: On
+- HTTP/2 Support: On
+- HSTS Enabled: On
+- Agree to the Let's Encrypt terms
+
+Save, then open:
+
+https://dashboard.weddingsbymark.uk
+
+Sign in with the email and new password stored in .env.
+
+
+IMPORTANT FIRST-START BEHAVIOUR
+-------------------------------
+The .env password creates the administrator only when the database is empty.
+After first start, changing the .env password does not silently reset the real
+password. Use Settings > Change password inside the Control Centre.
+
+All starter shortcut names, URLs, icons, colours and categories are editable.
+Local server URLs are initial suggestions and can be corrected on screen.
+
+
+SAFE UPDATE COMMANDS FOR LATER RELEASES
+---------------------------------------
+After pushing a future version to GitHub:
+
+cd /mnt/apps/dockge/data/newdashboard
+
+cp /mnt/apps/newdashboard/control-centre.db "/mnt/apps/newdashboard/control-centre-before-update-$(date +%Y%m%d-%H%M%S).db"
+
+docker compose -f compose.yaml build dashboard
+
+docker compose -f compose.yaml up -d
+
+curl -sS http://127.0.0.1:30046/api/health
+
+The persistent database remains in /mnt/apps/newdashboard and is not included
+inside the rebuilt image.

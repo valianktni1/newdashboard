@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#102f35">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>Weddings By Mark Control Centre</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/app.css?v=control-centre-v1">
+  <script src="/static/app.js?v=control-centre-v1" defer></script>
+</head>
+<body>
+  <section id="login-screen" class="login-screen">
+    <div class="login-glow glow-one"></div><div class="login-glow glow-two"></div>
+    <form id="login-form" class="login-card" autocomplete="on">
+      <div class="brand-mark large"><span>W</span><i>BM</i></div>
+      <p class="eyebrow">PRIVATE BUSINESS WORKSPACE</p>
+      <h1>Everything begins here.</h1>
+      <p class="login-intro">One secure doorway to Weddings By Mark, your client services and your server.</p>
+      <label>Email address<input id="login-email" type="email" autocomplete="username" required></label>
+      <label>Password<input id="login-password" type="password" autocomplete="current-password" required></label>
+      <p id="login-error" class="form-error" role="alert"></p>
+      <button id="login-button" class="primary full" type="submit">Open Control Centre <span>→</span></button>
+      <small>Private system · Secure sign-in · No client access</small>
+    </form>
+  </section>
+
+  <div id="dashboard-app" class="app-shell hidden">
+    <aside class="sidebar">
+      <div class="sidebar-brand"><div class="brand-mark"><span>W</span><i>BM</i></div><div><strong>Control Centre</strong><small>Weddings By Mark</small></div></div>
+      <nav id="category-nav" aria-label="Dashboard categories"></nav>
+      <div class="sidebar-spacer"></div>
+      <button id="edit-toggle" class="sidebar-action"><span>✎</span><div><strong>Edit dashboard</strong><small>Add, change or rearrange</small></div></button>
+      <button id="open-settings" class="sidebar-action"><span>⚙</span><div><strong>Settings</strong><small>Heading and security</small></div></button>
+      <div class="sidebar-footer"><span class="status-dot"></span><div><strong>Control Centre online</strong><small id="build-label">Version 1.0.0</small></div></div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <button id="mobile-menu" class="icon-button mobile-only" aria-label="Open menu">☰</button>
+        <div class="search-shell"><span>⌕</span><input id="search" type="search" placeholder="Search your services…" autocomplete="off"><kbd>Ctrl K</kbd></div>
+        <div class="top-actions"><span id="today-label"></span><button id="add-link-top" class="primary compact"><span>＋</span> Add shortcut</button><button id="user-menu" class="user-button" aria-label="Account menu">MP</button></div>
+        <div id="account-menu" class="account-menu hidden">
+          <button id="change-password">Change password</button>
+          <a href="/api/export" download>Export dashboard</a>
+          <button id="logout">Sign out</button>
+        </div>
+      </header>
+
+      <div class="content-wrap">
+        <section class="welcome-panel">
+          <div><p class="eyebrow">YOUR PRIVATE WORKSPACE</p><h1 id="greeting">Good afternoon, Mark.</h1><p id="dashboard-subtitle">Every part of the business, one click away.</p></div>
+          <div class="welcome-stats"><div><strong id="visible-count">0</strong><span>services ready</span></div><div><strong id="category-count">0</strong><span>organised areas</span></div></div>
+        </section>
+
+        <section id="edit-banner" class="edit-banner hidden">
+          <div><span>✦</span><div><strong>Dashboard editing is on</strong><p>Open any shortcut to change it, or use the arrows to rearrange the order.</p></div></div>
+          <div><button id="add-link-banner" class="secondary">＋ Add shortcut</button><button id="finish-editing" class="primary">Finish editing</button></div>
+        </section>
+
+        <div class="section-heading"><div><p class="eyebrow" id="section-eyebrow">ALL SERVICES</p><h2 id="section-title">Your control centre</h2></div><button id="mobile-filter" class="filter-button mobile-only">Filter <span>⌄</span></button></div>
+        <section id="link-grid" class="link-grid" aria-live="polite"></section>
+        <section id="empty-state" class="empty-state hidden"><span>⌕</span><h2>No shortcuts found</h2><p>Try another search or add a new service to your dashboard.</p><button id="empty-add" class="primary">＋ Add shortcut</button></section>
+        <footer class="page-footer"><span>Weddings By Mark Control Centre</span><small>Built to grow with your business.</small></footer>
+      </div>
+    </main>
+
+    <nav class="mobile-nav"><button data-mobile-category="All" class="active"><span>⌂</span>Home</button><button id="mobile-search"><span>⌕</span>Search</button><button id="mobile-add" class="mobile-add"><span>＋</span></button><button id="mobile-edit"><span>✎</span>Edit</button><button id="mobile-settings"><span>⚙</span>Settings</button></nav>
+    <button id="sidebar-scrim" class="scrim hidden" aria-label="Close menu"></button>
+  </div>
+
+  <button id="modal-scrim" class="modal-scrim hidden" aria-label="Close dialog"></button>
+  <section id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div id="modal-content"></div></section>
+  <div id="toast" class="toast hidden" role="status"></div>
+</body>
+</html>
