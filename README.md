@@ -1,5 +1,10 @@
 # Weddings By Mark Control Centre
 
+Version 1.1.0 adds a Today page, saved tasks, business workspaces, the couples'
+planner shortcut, light/dark themes and explicit HTTP availability checks.
+Business data panels show “Not connected” until real integrations are added.
+See `RELEASE-NOTES-V1.1.0.md` and `UPDATE-V1.1.0.md`.
+
 A private, self-hosted launchpad for Mark's business applications and server
 services. It is designed for TrueNAS SCALE, Dockge and Nginx Proxy Manager.
 

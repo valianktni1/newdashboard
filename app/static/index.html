@@ -8,10 +8,11 @@
   <title>Weddings By Mark Control Centre</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/static/app.css?v=control-centre-v1">
-  <script src="/static/app.js?v=control-centre-v1" defer></script>
+  <link rel="stylesheet" href="/static/app.css?v=daily-workspace-v1.1.0">
+  <script src="/static/app.js?v=daily-workspace-v1.1.0" defer></script>
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Skip to workspace</a>
   <section id="login-screen" class="login-screen">
     <div class="login-glow glow-one"></div><div class="login-glow glow-two"></div>
     <form id="login-form" class="login-card" autocomplete="on">
@@ -34,14 +35,14 @@
       <div class="sidebar-spacer"></div>
       <button id="edit-toggle" class="sidebar-action"><span>✎</span><div><strong>Edit dashboard</strong><small>Add, change or rearrange</small></div></button>
       <button id="open-settings" class="sidebar-action"><span>⚙</span><div><strong>Settings</strong><small>Heading and security</small></div></button>
-      <div class="sidebar-footer"><span class="status-dot"></span><div><strong>Control Centre online</strong><small id="build-label">Version 1.0.0</small></div></div>
+      <div class="sidebar-footer"><span class="privacy-icon" aria-hidden="true">◇</span><div><strong>Private workspace</strong><small id="build-label">Version 1.1.0</small></div></div>
     </aside>
 
-    <main>
+    <main id="main-content">
       <header class="topbar">
         <button id="mobile-menu" class="icon-button mobile-only" aria-label="Open menu">☰</button>
-        <div class="search-shell"><span>⌕</span><input id="search" type="search" placeholder="Search your services…" autocomplete="off"><kbd>Ctrl K</kbd></div>
-        <div class="top-actions"><span id="today-label"></span><button id="add-link-top" class="primary compact"><span>＋</span> Add shortcut</button><button id="user-menu" class="user-button" aria-label="Account menu">MP</button></div>
+        <div class="search-shell"><span>⌕</span><input id="search" type="search" placeholder="Search apps and tasks…" aria-label="Search apps and tasks" autocomplete="off"><kbd>Ctrl K</kbd></div>
+        <div class="top-actions"><span id="today-label"></span><button id="add-task-top" class="primary compact">＋ Add task</button><button id="theme-toggle" class="icon-button" aria-label="Switch colour theme">◐</button><button id="user-menu" class="user-button" aria-label="Account menu" aria-expanded="false">MP</button></div>
         <div id="account-menu" class="account-menu hidden">
           <button id="change-password">Change password</button>
           <a href="/api/export" download>Export dashboard</a>
@@ -51,8 +52,24 @@
 
       <div class="content-wrap">
         <section class="welcome-panel">
-          <div><p class="eyebrow">YOUR PRIVATE WORKSPACE</p><h1 id="greeting">Good afternoon, Mark.</h1><p id="dashboard-subtitle">Every part of the business, one click away.</p></div>
-          <div class="welcome-stats"><div><strong id="visible-count">0</strong><span>services ready</span></div><div><strong id="category-count">0</strong><span>organised areas</span></div></div>
+          <div><p class="eyebrow" id="workspace-label">TODAY / YOUR BUSINESS AT A GLANCE</p><h1 id="greeting">Welcome, Mark.</h1><p id="dashboard-subtitle">Every part of the business, one click away.</p></div>
+          <span id="today-label-mobile" class="date-note"></span>
+        </section>
+
+        <section id="today-summary" class="summary-grid" aria-label="Your task summary">
+          <div class="summary-card"><span>Open tasks</span><strong id="task-count">0</strong><small>Across your workspaces</small></div>
+          <div class="summary-card"><span>Due or overdue</span><strong id="due-count">0</strong><small>Personal tasks needing attention</small></div>
+          <div class="summary-card"><span>Favourite apps</span><strong id="favourite-count">0</strong><small>Your pinned shortcuts</small></div>
+        </section>
+
+        <section id="tasks-panel" class="workspace-section">
+          <div class="section-heading"><div><p class="eyebrow">YOUR NEXT STEPS</p><h2>Needs your attention</h2></div><div class="inline-actions"><label class="toggle-label"><input type="checkbox" id="show-completed"> Show completed</label><button id="add-task" class="secondary">＋ Add task</button></div></div>
+          <div id="task-list" aria-live="polite"></div>
+        </section>
+
+        <section id="connections-panel" class="workspace-section">
+          <div class="section-heading"><div><p class="eyebrow">BUSINESS OVERVIEW</p><h2 id="connections-title">Your connected business</h2></div><span class="muted">Data connections are the next step</span></div>
+          <div id="connection-grid" class="connection-grid"></div>
         </section>
 
         <section id="edit-banner" class="edit-banner hidden">
@@ -60,14 +77,20 @@
           <div><button id="add-link-banner" class="secondary">＋ Add shortcut</button><button id="finish-editing" class="primary">Finish editing</button></div>
         </section>
 
-        <div class="section-heading"><div><p class="eyebrow" id="section-eyebrow">ALL SERVICES</p><h2 id="section-title">Your control centre</h2></div><button id="mobile-filter" class="filter-button mobile-only">Filter <span>⌄</span></button></div>
+        <div class="section-heading"><div><p class="eyebrow" id="section-eyebrow">QUICK ACCESS</p><h2 id="section-title">Your favourite apps</h2></div><div class="inline-actions"><label id="category-filter-label" class="hidden">Category <select id="category-filter" aria-label="Filter apps by category"></select></label><button id="add-link-top" class="secondary">＋ Add shortcut</button></div></div>
         <section id="link-grid" class="link-grid" aria-live="polite"></section>
         <section id="empty-state" class="empty-state hidden"><span>⌕</span><h2>No shortcuts found</h2><p>Try another search or add a new service to your dashboard.</p><button id="empty-add" class="primary">＋ Add shortcut</button></section>
+        <section id="systems-panel" class="workspace-section hidden">
+          <div class="section-heading"><div><p class="eyebrow">AVAILABILITY</p><h2>Service checks</h2></div><button id="check-services" class="secondary">Check services</button></div>
+          <p class="muted">Checks run from your server and confirm an HTTP response only. They do not verify backups, storage or data feeds. Results are cached for one minute.</p>
+          <div id="service-list" aria-live="polite"></div>
+        </section>
+        <section id="activity-panel" class="workspace-section"><div class="section-heading"><div><p class="eyebrow">WORKSPACE HISTORY</p><h2>Recent activity</h2></div></div><div id="activity-list"></div></section>
         <footer class="page-footer"><span>Weddings By Mark Control Centre</span><small>Built to grow with your business.</small></footer>
       </div>
     </main>
 
-    <nav class="mobile-nav"><button data-mobile-category="All" class="active"><span>⌂</span>Home</button><button id="mobile-search"><span>⌕</span>Search</button><button id="mobile-add" class="mobile-add"><span>＋</span></button><button id="mobile-edit"><span>✎</span>Edit</button><button id="mobile-settings"><span>⚙</span>Settings</button></nav>
+    <nav class="mobile-nav" aria-label="Mobile navigation"><button id="mobile-home"><span>⌂</span>Today</button><button id="mobile-search"><span>⌕</span>Search</button><button id="mobile-add" class="mobile-add" aria-label="Add task"><span>＋</span></button><button id="mobile-apps"><span>▦</span>All apps</button><button id="mobile-workspaces"><span>☰</span>Workspaces</button></nav>
     <button id="sidebar-scrim" class="scrim hidden" aria-label="Close menu"></button>
   </div>
 
