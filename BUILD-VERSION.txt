@@ -1,8 +1,12 @@
 Weddings By Mark Control Centre
-Version: 1.0.0
-Build: 2026.08.20-control-centre-v1.0.0
+Version: 1.1.0
+Build: 2026.10.21-daily-workspace-v1.1.0
 
-First complete release:
+Daily workspace release: Today, saved tasks, business workspaces, planner
+shortcut, HTTP availability checks and light/dark themes.
+See RELEASE-NOTES-V1.1.0.md for scope and UPDATE-V1.1.0.md for deployment.
+
+Original release foundation:
 
 - Secure, single-administrator control centre.
 - Modern responsive desktop, tablet and mobile interface.

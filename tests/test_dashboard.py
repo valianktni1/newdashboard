@@ -30,7 +30,7 @@ def test_complete_control_centre_flow_is_private_editable_and_exportable():
         health = client.get("/api/health")
         assert health.status_code == 200
         assert health.json() == {
-            "status": "ok", "service": "newdashboard", "version": "1.0.0", "build": BUILD,
+            "status": "ok", "service": "newdashboard", "version": "1.1.0", "build": BUILD,
         }
         assert client.get("/api/dashboard").status_code == 401
         assert login(client, "wrong-password").status_code == 401
@@ -40,7 +40,7 @@ def test_complete_control_centre_flow_is_private_editable_and_exportable():
 
         dashboard = client.get("/api/dashboard").json()
         assert dashboard["settings"]["greeting_name"] == "Mark"
-        assert len(dashboard["links"]) == 12
+        assert len(dashboard["links"]) == 13
         urls = {item["url"] for item in dashboard["links"]}
         assert "https://booking.weddingsbymark.uk" in urls
         assert "https://accounts2026.weddingsbymark.uk" in urls
@@ -117,9 +117,9 @@ def test_complete_control_centre_flow_is_private_editable_and_exportable():
 
 def test_frontend_contains_responsive_editor_search_and_future_ready_activity_api():
     root = Path(__file__).parents[1]
-    html = (root / "app" / "static" / "index.html").read_text()
-    css = (root / "app" / "static" / "app.css").read_text()
-    javascript = (root / "app" / "static" / "app.js").read_text()
+    html = (root / "app" / "static" / "index.html").read_text(encoding="utf-8")
+    css = (root / "app" / "static" / "app.css").read_text(encoding="utf-8")
+    javascript = (root / "app" / "static" / "app.js").read_text(encoding="utf-8")
     compose = (root / "compose.yaml").read_text()
 
     assert "Edit dashboard" in html
@@ -129,7 +129,7 @@ def test_frontend_contains_responsive_editor_search_and_future_ready_activity_ap
     assert "@media(max-width:700px)" in css
     assert "openLinkModal" in javascript
     assert 'api("/api/links/reorder"' in javascript
-    assert "/api/activity" in (root / "app" / "main.py").read_text()
+    assert "/api/activity" in (root / "app" / "main.py").read_text(encoding="utf-8")
     assert '"30046:8080"' in compose
     assert "/mnt/apps/newdashboard:/data" in compose
     assert "no-new-privileges:true" in compose

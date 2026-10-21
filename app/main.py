@@ -7,10 +7,10 @@ import re
 import secrets
 import sqlite3
 import threading
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 from urllib.parse import urlparse
 
 from argon2 import PasswordHasher
@@ -22,8 +22,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 
-BUILD = "2026.08.20-control-centre-v1.0.0"
-APP_VERSION = "1.0.0"
+BUILD = "2026.10.21-daily-workspace-v1.1.0"
+APP_VERSION = "1.1.0"
 DATA_DIR = Path(os.getenv("DASHBOARD_DATA_DIR", "/data"))
 DATABASE_PATH = DATA_DIR / "control-centre.db"
 STATIC_DIR = Path(__file__).parent / "static"
@@ -71,12 +71,17 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def connect() -> sqlite3.Connection:
+@contextmanager
+def connect():
     connection = sqlite3.connect(DATABASE_PATH, timeout=30, check_same_thread=False)
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
     connection.execute("PRAGMA busy_timeout = 30000")
-    return connection
+    try:
+        with connection:
+            yield connection
+    finally:
+        connection.close()
 
 
 def initialise_database() -> None:
@@ -151,6 +156,8 @@ def initialise_database() -> None:
                 "INSERT INTO activity(action, detail, created_at) VALUES (?, ?, ?)",
                 ("dashboard_created", "Control Centre created with editable starter shortcuts", now),
             )
+        from .workspace import initialise_workspace
+        initialise_workspace(db, now)
         db.execute("DELETE FROM sessions WHERE expires_at <= ?", (now,))
         db.commit()
 
@@ -191,6 +198,7 @@ class LoginIn(StrictModel):
 
 
 class LinkIn(StrictModel):
+    workspace: Literal["Weddings By Mark", "Ivory Digital", "Marketing", "Accounts", "Systems", "Other"] = "Other"
     name: str = Field(min_length=1, max_length=60)
     url: str = Field(min_length=8, max_length=500)
     description: str = Field(default="", max_length=180)
@@ -213,6 +221,7 @@ class LinkIn(StrictModel):
 
 
 class LinkPatch(StrictModel):
+    workspace: Literal["Weddings By Mark", "Ivory Digital", "Marketing", "Accounts", "Systems", "Other"] | None = None
     name: str | None = Field(default=None, min_length=1, max_length=60)
     url: str | None = Field(default=None, min_length=8, max_length=500)
     description: str | None = Field(default=None, max_length=180)
@@ -251,7 +260,7 @@ class PasswordIn(StrictModel):
 
 def row_link(row: sqlite3.Row) -> dict:
     return {
-        "id": row["id"], "name": row["name"], "url": row["url"],
+        "id": row["id"], "name": row["name"], "url": row["url"], "workspace": row["workspace"],
         "description": row["description"], "category": row["category"],
         "icon": row["icon"], "accent": row["accent"],
         "sort_order": row["sort_order"], "pinned": bool(row["pinned"]),
@@ -400,11 +409,11 @@ def create_link(payload: LinkIn, request: Request, _: dict = Depends(current_adm
         order = db.execute("SELECT COALESCE(MAX(sort_order), 0) + 1 FROM links").fetchone()[0]
         cursor = db.execute(
             """INSERT INTO links(name, url, description, category, icon, accent, sort_order,
-               pinned, active, open_new_tab, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               pinned, active, open_new_tab, created_at, updated_at, workspace)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (payload.name, payload.url, payload.description, payload.category, payload.icon,
              payload.accent, order, int(payload.pinned), int(payload.active),
-             int(payload.open_new_tab), now, now),
+             int(payload.open_new_tab), now, now, payload.workspace),
         )
         audit(db, "link_added", f"Added shortcut: {payload.name}")
         db.commit()
@@ -417,6 +426,8 @@ def update_link(link_id: int, payload: LinkPatch, request: Request,
                 _: dict = Depends(current_admin)):
     require_same_origin(request)
     changes = payload.model_dump(exclude_unset=True)
+    if any(value is None for value in changes.values()):
+        raise HTTPException(status_code=422, detail="Shortcut fields cannot be null")
     if not changes:
         raise HTTPException(status_code=400, detail="Nothing was changed")
     with DB_LOCK, connect() as db:
@@ -521,7 +532,8 @@ def export_configuration(_: dict = Depends(current_admin)):
     with DB_LOCK, connect() as db:
         payload = {
             "format": "Weddings By Mark Control Centre configuration",
-            "version": 1,
+            "version": 2,
+            "tasks": [dict(row) for row in db.execute("SELECT * FROM tasks ORDER BY id")],
             "exported_at": utcnow().isoformat(),
             "build": BUILD,
             "settings": settings_from(db),
@@ -559,3 +571,7 @@ async def spa_fallback(request: Request, exc: HTTPException):
     if request.method == "GET" and not request.url.path.startswith("/api/"):
         return FileResponse(STATIC_DIR / "index.html")
     return JSONResponse({"detail": exc.detail}, status_code=404)
+
+
+from .workspace import router as workspace_router
+app.include_router(workspace_router)
