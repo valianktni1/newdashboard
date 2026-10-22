@@ -99,3 +99,35 @@ unchanged release on Windows (`O_NOFOLLOW` and symlink privileges). The new feed
 Booking invitation and timing tests pass. Docker builds and isolated restore are
 performed by the NAS installer; they were not run locally. Automated visual
 browser access was unavailable during this change.
+
+## Combined attention list (v1.4.0)
+
+Today now combines unfinished personal tasks with the existing read-only Booking
+and Planner queue previews. Review-first actions are overdue tasks/invoices and
+planner invitation delivery problems. Next are tasks due today, high priority
+tasks, new enquiries and first payments. Other follow-ups follow, ordered by
+available date and title. A high-priority future task is a priority, not an overdue
+claim. Planner access dates remain labelled as access expiry.
+
+Filter by source or show the next 12 rows. Complete/edit personal tasks using the
+existing task APIs; open Booking/Planner to act on their records. **Manage tasks**
+opens the original task manager, including completed tasks. Each row is an action,
+so the same wedding can appear in several queues. Names are never used to merge
+records across apps. Source queues still supply at most five records; warnings
+explain missing previews and direct users to the full app. Missing/stale feeds are
+labelled, and feeds older than five minutes are also marked stale in the browser.
+No follow-up list can claim completeness when a source is unavailable.
+
+No Booking or Planner code, keys, schema, schedules or write endpoints change.
+The browser combines the same authenticated snapshots already available to the
+signed-in dashboard administrator. Existing feed limits and caching still apply.
+
+Run `node --test tests/attention.test.cjs` for aggregation tests and
+`python -m pytest tests -q` for dashboard and installer checks. The new
+`scripts/install-attention-update.py --source /path/to/newdashboard` builds only
+Dashboard from bundled private source, preserves all resolved runtime settings,
+backs up SQLite and the running image, and prepares an exact rollback command.
+It recreates Dashboard alone. Startup checks require v1.4.0 and preserve both
+feeds' previously connected status. A failed live check triggers an image/config
+rollback and preserves live data. Docker/NAS build and visual browser checks
+were not performed locally; the installer performs the build/live checks.
