@@ -22,8 +22,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 
-BUILD = "2026.10.22-booking-connection-v1.2.0"
-APP_VERSION = "1.2.0"
+BUILD = "2026.10.22-planner-connection-v1.3.0"
+APP_VERSION = "1.3.0"
 DATA_DIR = Path(os.getenv("DASHBOARD_DATA_DIR", "/data"))
 DATABASE_PATH = DATA_DIR / "control-centre.db"
 STATIC_DIR = Path(__file__).parent / "static"
@@ -578,3 +578,6 @@ app.include_router(workspace_router)
 
 from .booking_connection import register_booking_routes
 register_booking_routes(app, current_admin, require_same_origin)
+
+from .planner_connection import register_planner_routes
+register_planner_routes(app, current_admin, require_same_origin)

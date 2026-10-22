@@ -60,3 +60,42 @@ as the latest three client updates, things to do, service health, payment totals
 or backup status without rebuilding the basic control centre.
 
 See `DEPLOY-TRUENAS-DOCKGE.txt` for the exact safe deployment sequence.
+
+## Planner dashboard connection (v1.3.0)
+
+The Today, Weddings By Mark and Ivory Digital pages show a read-only Planner
+summary: accounts with current access, invitations awaiting couples, invitation
+email problems, access ending within 14 days and the worker heartbeat. Each
+queue shows at most five records; open Planner admin to review the full list or
+make changes. Counts cover all planner accounts, excluding cancelled invitations.
+Current access includes trials and complimentary accounts; it is not a sales count.
+
+Planner v1.3.2 supplies `/api/integrations/control-centre/overview` using a separate
+`PLANNER_CONTROL_CENTRE_KEY`, with `PLANNER_CONTROL_CENTRE_ENABLED=true`. Set the
+same value as `DASHBOARD_PLANNER_KEY`, with `DASHBOARD_PLANNER_URL` defaulting to
+`https://planner.ivorydigital.uk`. Keep the key separate from Booking credentials.
+Keys stay on the server. No couple checklists, budgets, guest details, email
+addresses, invitation links or private notes are returned.
+
+The local source bundle runs `scripts/install-planner-connection.py --bundle
+/path/to/extracted/bundle`. It builds both private repositories from bundled
+sources, creates a new independent env file for each integration endpoint, and
+compares resolved Compose settings before making changes. Existing env files,
+ports, volumes, service commands and Booking credentials remain unchanged.
+The release source directories and Compose build contexts persist on the NAS.
+
+Before restarting, the installer backs up the planner, rehearses its full archive
+restore without network or live data mounts, and backs up the dashboard database.
+It preserves both previous images and Compose files and prints a rollback command.
+Only Planner web/worker and Dashboard are recreated. Startup checks require a
+healthy worker, both app versions, a successful real Planner feed read from
+Dashboard, and an unchanged digest of the existing Booking invitation settings.
+A failed check triggers image/configuration rollback while preserving live data.
+
+Validation: 26 dashboard/installer tests; real Flask feed validated against the
+dashboard consumer schema; JavaScript syntax checked. Planner regression run:
+167 passed, with two Linux filesystem backup tests failing identically in the
+unchanged release on Windows (`O_NOFOLLOW` and symlink privileges). The new feed,
+Booking invitation and timing tests pass. Docker builds and isolated restore are
+performed by the NAS installer; they were not run locally. Automated visual
+browser access was unavailable during this change.

@@ -8,6 +8,9 @@
   const categoryIcons = {Today: "⌂", "Weddings By Mark": "W", "Ivory Digital": "ID", Marketing: "↗", Accounts: "£", Systems: "▦", "All apps": "◇"};
   let lastFocus;
   let checking = false;
+  let loadingPlanner = false;
+  let plannerQueue = "invitation_problems";
+  const plannerLabels = {invitation_problems:"Invitation delivery to review", awaiting_couples:"Invitations awaiting couples", expiring_access:"Access ending within 14 days"};
   let loadingBooking = false;
   let bookingQueue = "new_enquiries";
   const bookingLabels = {new_enquiries: "Enquiries to review", quotes_waiting: "Quotes awaiting a decision", overdue_payments: "Overdue invoices", payments_due: "Invoices due within 60 days", accepted_payment: "Accepted · first payment needed", forms_waiting: "Booking forms outstanding", agreements_waiting: "Agreements outstanding"};
@@ -108,8 +111,9 @@
     $("#connections-panel").classList.toggle("hidden", !relevant.length || state.editing || Boolean(state.search));
     $("#connection-grid").innerHTML = relevant.map(item => {
       const link = state.links.find(link => link.active && item.names.includes(link.name));
-      const connected = item.title === "Enquiries & weddings" && state.booking?.data;
-      return `<div class="connection-card"><div class="connection-title"><h3>${esc(item.title)}</h3><span class="badge">${connected ? state.booking.status === "connected" ? "Connected" : "Saved information" : "Not connected"}</span></div><p>${esc(item.description)}</p><div class="connection-bottom"><span class="muted">${connected ? "See booking overview above" : "Live figures unavailable"}</span>${link ? `<a href="${attr(link.url)}" ${link.open_new_tab ? 'target="_blank" rel="noopener noreferrer"' : ""}>Open app ↗</a>` : ""}</div></div>`;
+      const connection = item.title === "Enquiries & weddings" ? state.booking : item.title === "Couples' planner" ? state.planner : null;
+      const connected = connection?.data;
+      return `<div class="connection-card"><div class="connection-title"><h3>${esc(item.title)}</h3><span class="badge">${connected ? connection.status === "connected" ? "Connected" : "Saved information" : "Not connected"}</span></div><p>${esc(item.description)}</p><div class="connection-bottom"><span class="muted">${connected ? "See overview above" : "Live figures unavailable"}</span>${link ? `<a href="${attr(link.url)}" ${link.open_new_tab ? 'target="_blank" rel="noopener noreferrer"' : ""}>Open app ↗</a>` : ""}</div></div>`;
     }).join("");
   }
   function renderServices() {
@@ -148,7 +152,7 @@
     filter.innerHTML = ["All", ...categories()].map(category => `<option ${state.category === category ? "selected" : ""}>${esc(category)}</option>`).join("");
     $$("[data-edit-link]").forEach(button => button.onclick = () => openLinkModal(state.links.find(link => link.id === Number(button.dataset.editLink))));
     $$("[data-move]").forEach(button => button.onclick = () => moveLink(Number(button.dataset.id), button.dataset.move));
-    renderTasks(); renderConnections(); renderServices(); renderBooking();
+    renderTasks(); renderConnections(); renderServices(); renderBooking(); renderPlanner();
     $("#activity-list").innerHTML = state.activity.length ? state.activity.slice(0, 4).map(item => `<div class="activity-row"><span>${esc(item.detail)}</span><time datetime="${attr(item.created_at)}">${timestamp(item.created_at)}</time></div>`).join("") : '<p class="muted">Your dashboard changes and tasks will appear here.</p>';
     $("#mobile-home").classList.toggle("active", today);
     $("#mobile-apps").classList.toggle("active", state.page === "All apps");
@@ -169,6 +173,28 @@
       <div class="summary-grid booking-summary">${["new_enquiries","quotes_waiting","overdue_payments"].map(key => `<div class="summary-card"><span>${esc(bookingLabels[key])}</span><strong>${data.queues[key].count}</strong><small>${key === "overdue_payments" ? money(data.queues[key].total_amount_pence) + " remaining on invoices" : "In your booking app"}</small></div>`).join("")}</div>
       <div class="booking-details"><div><label class="booking-filter">Needs attention<select id="booking-queue" aria-label="Booking queue">${Object.keys(bookingLabels).map(key => `<option value="${key}" ${key === bookingQueue ? "selected" : ""}>${esc(bookingLabels[key])} (${data.queues[key].count})</option>`).join("")}</select></label>${group.items.length ? group.items.map(row).join("") : '<p class="muted">No items in this queue.</p>'}${group.count > 5 ? `<p class="muted">Showing 5 of ${group.count}. Open Booking for the full list.</p>` : ""}${["overdue_payments","payments_due"].includes(bookingQueue) ? '<p class="muted">Amounts show the remaining invoice balance, including future instalments. Check the payment schedule in Booking before requesting payment.</p>' : ""}</div><div><h3>Your next five weddings</h3>${data.upcoming_weddings.length ? data.upcoming_weddings.map(row).join("") : '<p class="muted">No upcoming confirmed weddings.</p>'}</div></div><p class="muted">Weddings By Mark only · test, archived and cancelled records excluded · open a record to make changes.</p>`;
     $("#booking-queue").onchange = event => { bookingQueue = event.target.value; renderBooking(); };
+  }
+  function renderPlanner() {
+    $("#planner-panel").classList.toggle("hidden", !["Today", "Weddings By Mark", "Ivory Digital"].includes(state.page) || state.editing || Boolean(state.search));
+    const result = state.planner;
+    if (!result) return;
+    if (!result.data) {
+      $("#planner-content").innerHTML = `<div class="empty-panel"><div><strong>${result.status === "not_connected" ? "Ready to connect your planner" : "Planner information unavailable"}</strong><p>${esc(result.message)}</p></div></div>`;
+      return;
+    }
+    const data = result.data, items = data.queues[plannerQueue], count = data.counts[plannerQueue];
+    $("#planner-content").innerHTML = `<div class="booking-freshness ${result.status === "stale" ? "overdue" : ""}"><strong>${result.status === "connected" ? "Connected · read only" : "Saved information · refresh needed"}</strong><span>Updated ${timestamp(data.generated_at)}</span>${result.status !== "connected" ? `<span>${esc(result.message)}</span>` : ""}</div>
+      <div class="summary-grid booking-summary">${[["active_accounts","Accounts with current access"],["awaiting_couples","Invitations awaiting couples"],["invitation_problems","Invitation delivery to review"]].map(([key,label]) => `<div class="summary-card"><span>${label}</span><strong>${data.counts[key]}</strong><small>${key === "active_accounts" ? data.counts.active_last_seven_days + " used their planner in the last 7 days" : key === "awaiting_couples" ? "Queued or sent; couple has not joined" : "Retrying, failed or missing email"}</small></div>`).join("")}</div>
+      <div class="booking-details"><div><label class="booking-filter">Planner follow-up<select id="planner-queue" aria-label="Planner queue">${Object.keys(plannerLabels).map(key => `<option value="${key}" ${key === plannerQueue ? "selected" : ""}>${plannerLabels[key]} (${data.counts[key]})</option>`).join("")}</select></label>${items.length ? items.map(item => `<div class="booking-row"><div><strong>${esc(item.title)}</strong><small>${esc(item.status)} · Access until ${dueText(item.access_until)}${item.wedding_date ? " · Wedding " + dueText(item.wedding_date) : ""}</small></div></div>`).join("") : '<p class="muted">No items in this queue.</p>'}${count > 5 ? `<p class="muted">Showing 5 of ${count}. Open Planner admin for the full list.</p>` : ""}</div>
+      <div><h3>Planner service</h3><p>${data.worker_status === "ok" ? "Email & backup worker is responding." : data.worker_status === "attention" ? "Worker heartbeat is overdue. Check Planner admin." : "Worker status is not available yet."}</p><p class="muted">${data.counts.expiring_access} accounts have access ending within 14 days.</p><a class="button secondary" href="${attr(result.source_url + "/ivoryadmin")}" target="_blank" rel="noopener noreferrer">Open Planner admin ↗</a></div></div><p class="muted">All planner accounts · cancelled invitations excluded · couples’ private plans stay in the planner.</p>`;
+    $("#planner-queue").onchange = event => { plannerQueue = event.target.value; renderPlanner(); };
+  }
+  async function loadPlanner(force = false) {
+    if (loadingPlanner) return;
+    loadingPlanner = true; $("#refresh-planner").disabled = true;
+    try { state.planner = await api(force ? "/api/planner/refresh" : "/api/planner/overview", force ? {method:"POST"} : {}); }
+    catch (error) { state.planner = {...state.planner, status:state.planner?.data ? "stale" : "error", message:"Planner information could not be refreshed."}; }
+    finally { loadingPlanner = false; $("#refresh-planner").disabled = false; renderPlanner(); renderConnections(); }
   }
   async function loadBooking(force = false) {
     if (loadingBooking) return;
@@ -316,9 +342,9 @@
   async function loadDashboard() {
     const [data, tasks, services, activity] = await Promise.all([api("/api/dashboard"), api("/api/tasks"), api("/api/services"), api("/api/activity?limit=4")]);
     Object.assign(state, {links: data.links, settings: data.settings, tasks, services, activity});
-    $("#build-label").textContent = "Version 1.2.0";
+    $("#build-label").textContent = "Version 1.3.0";
     render();
-    loadBooking();
+    loadBooking(); loadPlanner();
   }
   function setTheme(theme) { document.documentElement.dataset.theme = theme; $("#theme-toggle").setAttribute("aria-label", `Switch to ${theme === "dark" ? "light" : "dark"} theme`); try { localStorage.setItem("wbm-theme", theme); } catch (_) {} }
   function bind() {
@@ -354,8 +380,9 @@
       catch (error) { toast(error.message, "error"); }
       finally { checking = false; button.disabled = false; button.textContent = "Check services"; }
     };
+    $("#refresh-planner").onclick = () => loadPlanner(true);
     $("#refresh-booking").onclick = () => loadBooking(true);
-    setInterval(() => { if (!document.hidden && !$("#dashboard-app").classList.contains("hidden")) loadBooking(); }, 60000);
+    setInterval(() => { if (!document.hidden && !$("#dashboard-app").classList.contains("hidden")) { loadBooking(); loadPlanner(); } }, 60000);
     document.addEventListener("click", event => { if (!event.target.closest("#account-menu") && !event.target.closest("#user-menu")) { $("#account-menu").classList.add("hidden"); $("#user-menu").setAttribute("aria-expanded", "false"); } });
     document.addEventListener("keydown", event => {
       if (event.key === "Escape") { closeModal(); closeSidebar(); $("#account-menu").classList.add("hidden"); }
