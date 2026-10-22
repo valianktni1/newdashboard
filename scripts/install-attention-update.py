@@ -70,7 +70,7 @@ def verify(folder,previous,attempts=15):
         result=subprocess.run(['docker','exec',cid,'python','-c',PROBE],text=True,capture_output=True)
         if result.returncode==0:
             status=json.loads(result.stdout)
-            if status['version']=='1.4.0' and all(previous[key]!='connected' or status[key]=='connected' for key in ('booking','planner')):
+            if status['version']=='1.4.1' and all(previous[key]!='connected' or status[key]=='connected' for key in ('booking','planner')):
                 return status
         time.sleep(2)
     raise RuntimeError('Dashboard startup or an existing connection failed its verification.')
@@ -109,7 +109,7 @@ def main():
     print('1/4 Building Dashboard while the current container keeps running...',flush=True)
     run(compose(folder,candidate)+['build','dashboard'],stream=True)
     run(['docker','run','--rm','--network','none','--read-only','--tmpfs','/tmp:mode=1777',image,'python','-c',
-         "from app.main import APP_VERSION; from pathlib import Path; assert APP_VERSION=='1.4.0'; assert 'DashboardAttention' in Path('/app/app/static/app.js').read_text(); assert Path('/app/app/static/attention.js').is_file()"])
+         "from app.main import APP_VERSION; from pathlib import Path; assert APP_VERSION=='1.4.1'; assert 'DashboardAttention' in Path('/app/app/static/app.js').read_text(); assert Path('/app/app/static/attention.js').is_file()"])
     print('2/4 Backing up the dashboard database...',flush=True)
     name='control-centre-before-attention-'+stamp+'.db'
     code="import sqlite3,os; from pathlib import Path; p=Path(os.getenv('DASHBOARD_DATA_DIR','/data')); s=sqlite3.connect((p/'control-centre.db').as_uri()+'?mode=ro',uri=True); d=sqlite3.connect(p/"+repr(name)+"); s.backup(d); assert d.execute('PRAGMA integrity_check').fetchone()[0]=='ok'; d.close(); s.close(); print(p/"+repr(name)+")"

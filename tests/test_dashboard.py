@@ -30,7 +30,7 @@ def test_complete_control_centre_flow_is_private_editable_and_exportable():
         health = client.get("/api/health")
         assert health.status_code == 200
         assert health.json() == {
-            "status": "ok", "service": "newdashboard", "version": "1.4.0", "build": BUILD,
+            "status": "ok", "service": "newdashboard", "version": "1.4.1", "build": BUILD,
         }
         assert client.get("/api/dashboard").status_code == 401
         assert login(client, "wrong-password").status_code == 401

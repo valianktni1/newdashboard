@@ -40,8 +40,8 @@ def test_rollback_restarts_only_dashboard_and_does_not_restore_live_data(tmp_pat
 
 def test_verification_requires_new_version_and_preserves_connected_feeds(monkeypatch):
     results=iter([{'version':'1.3.0','booking':'connected','planner':'connected'},
-                  {'version':'1.4.0','booking':'connected','planner':'error'},
-                  {'version':'1.4.0','booking':'connected','planner':'connected'}])
+                  {'version':'1.4.1','booking':'connected','planner':'error'},
+                  {'version':'1.4.1','booking':'connected','planner':'connected'}])
     monkeypatch.setattr(installer,'get_container',lambda _: 'dashboard-container')
     monkeypatch.setattr(installer.time,'sleep',lambda _:None)
     monkeypatch.setattr(installer.subprocess,'run',lambda *a,**k:subprocess.CompletedProcess(a,0,json.dumps(next(results)),''))
@@ -52,7 +52,7 @@ def test_verification_requires_new_version_and_preserves_connected_feeds(monkeyp
 def test_failed_existing_connection_rejects_release(monkeypatch):
     monkeypatch.setattr(installer,'get_container',lambda _: 'dashboard-container')
     monkeypatch.setattr(installer.time,'sleep',lambda _:None)
-    monkeypatch.setattr(installer.subprocess,'run',lambda *a,**k:subprocess.CompletedProcess(a,0,json.dumps({'version':'1.4.0','booking':'error','planner':'connected'}),''))
+    monkeypatch.setattr(installer.subprocess,'run',lambda *a,**k:subprocess.CompletedProcess(a,0,json.dumps({'version':'1.4.1','booking':'error','planner':'connected'}),''))
     with pytest.raises(RuntimeError,match='connection'):
         installer.verify(Path('/existing'),{'booking':'connected','planner':'connected'},attempts=1)
 

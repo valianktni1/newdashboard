@@ -22,8 +22,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 
-BUILD = "2026.10.22-attention-v1.4.0"
-APP_VERSION = "1.4.0"
+BUILD = "2026.10.22-favourites-v1.4.1"
+APP_VERSION = "1.4.1"
 DATA_DIR = Path(os.getenv("DASHBOARD_DATA_DIR", "/data"))
 DATABASE_PATH = DATA_DIR / "control-centre.db"
 STATIC_DIR = Path(__file__).parent / "static"
