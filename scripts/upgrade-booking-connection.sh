@@ -87,6 +87,15 @@ echo '3/6 Checking that the new images contain both sides of the connection...'
 "${dashboard_build[@]}" run --rm --no-deps --entrypoint python dashboard -c 'from app.main import app; assert any(r.path=="/api/booking/overview" for r in app.routes); print("Dashboard connection present")'
 echo '4/6 Configuring a private shared key without displaying it...'
 python3 "$helper" --booking-stack "$booking_dir" --dashboard-stack "$dashboard_dir"
+# Hand-written Dockge stacks may omit env_file. Wire only these two new settings
+# into the dashboard service, preserving all other resolved Compose settings.
+repair_helper="$(dirname -- "$helper")/repair-dashboard-connection.py"
+if [[ ! -f "$repair_helper" ]]; then
+  repair_helper=$(mktemp /tmp/wbm-dashboard-key-loading.XXXXXX.py)
+  temporary_files+=("$repair_helper")
+  curl -fL https://raw.githubusercontent.com/valianktni1/newdashboard/main/scripts/repair-dashboard-connection.py -o "$repair_helper"
+fi
+python3 "$repair_helper" --stack "$dashboard_dir" --configure-only
 echo '5/6 Starting both updated apps...'
 "${booking_build[@]}" up -d --no-deps --no-build app
 "${dashboard_build[@]}" up -d --no-deps --no-build dashboard

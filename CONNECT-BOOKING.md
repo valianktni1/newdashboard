@@ -96,6 +96,15 @@ random key in both apps to revoke an old key. Do not reuse an admin password.
 
 ## Freshness and failure behaviour
 
+If the dashboard reports `not_connected` even though its `.env` contains the
+saved key, the deployed Compose definition may omit the new variables. Run
+`scripts/repair-dashboard-connection.py` on the NAS. It backs up only the
+dashboard Compose file, adds two references to the existing saved key/origin,
+compares resolved configuration to reject unrelated changes, and recreates only
+the dashboard using its existing image. It does not change either `.env`, the
+Booking stack, the Planner stack or their connection. The installer now applies
+this configuration check automatically after pairing keys.
+
 The browser checks once a minute while visible. The server caches attempts for
 60 seconds; manual refresh has a 15-second minimum interval. Requests have a
 five-second network timeout and response size/schema validation. A failed refresh
