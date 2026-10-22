@@ -6,6 +6,7 @@
   const pages = ["Today", ...areas.slice(0, 5), "All apps"];
   const state = {links: [], settings: {}, tasks: [], services: [], activity: [], page: "Today", category: "All", search: "", editing: false, completed: false};
   const categoryIcons = {Today: "⌂", "Weddings By Mark": "W", "Ivory Digital": "ID", Marketing: "↗", Accounts: "£", Systems: "▦", "All apps": "◇"};
+  let attentionSource = "All", attentionLimit = 12;
   let lastFocus;
   let checking = false;
   let loadingPlanner = false;
@@ -95,8 +96,31 @@
       (state.page === "Today" || state.page === "All apps" || task.workspace === state.page) &&
       (!state.search || `${task.title} ${task.workspace}`.toLowerCase().includes(state.search.toLowerCase())));
     $("#task-list").innerHTML = visible.length ? visible.map(task => `<div class="task-row ${task.completed ? "is-complete" : ""}"><label class="task-check"><input type="checkbox" data-complete="${task.id}" ${task.completed ? "checked" : ""} aria-label="${task.completed ? "Reopen" : "Complete"} ${attr(task.title)}"></label><div class="task-copy"><strong>${esc(task.title)}</strong><div class="task-meta"><span>${esc(task.workspace)}</span><span class="${!task.completed && task.due_date && task.due_date < today ? "overdue" : ""}">${task.due_date && task.due_date < today && !task.completed ? "Overdue · " : ""}${dueText(task.due_date)}</span>${task.priority === "high" ? '<span class="priority">High priority</span>' : ""}</div></div>${task.url ? `<a class="text-link" href="${attr(task.url)}" target="_blank" rel="noopener noreferrer">Open ↗</a>` : ""}<button class="icon-button" data-edit-task="${task.id}" aria-label="Edit ${attr(task.title)}">✎</button></div>`).join("") : `<div class="empty-panel"><span class="empty-mark" aria-hidden="true">✓</span><div><strong>${state.search ? "No matching tasks" : state.tasks.length ? "Nothing to do in this view" : "A clear place to start your day"}</strong><p>${state.search ? "Try another search." : "Add follow-ups, editing deadlines and reminders. Your tasks are saved here."}</p></div></div>`;
+    bindTaskActions();
+  }
+  function bindTaskActions() {
     $$("[data-complete]").forEach(box => box.onchange = async () => { box.disabled = true; try { await api(`/api/tasks/${box.dataset.complete}/complete`, {method: "POST", body: JSON.stringify({completed: box.checked})}); await loadDashboard(); } catch (error) { box.checked = !box.checked; toast(error.message, "error"); } finally { box.disabled = false; } });
     $$("[data-edit-task]").forEach(button => button.onclick = () => openTaskModal(state.tasks.find(task => task.id === Number(button.dataset.editTask))));
+  }
+  function renderAttention() {
+    $("#attention-panel").classList.toggle("hidden", state.page !== "Today" || state.editing || Boolean(state.search.trim()));
+    const view = DashboardAttention.build({tasks: state.tasks, booking: state.booking, planner: state.planner, today: localDate()});
+    const rows = view.items.filter(item => attentionSource === "All" || item.source === attentionSource);
+    $("#attention-manage-tasks").textContent = state.manageTasks ? "Hide task manager" : "Manage tasks";
+    $("#attention-manage-tasks").setAttribute("aria-expanded", Boolean(state.manageTasks));
+    $("#attention-task-status").textContent = state.tasksError ? "Tasks could not be refreshed. Previously loaded tasks are shown; review them before acting." : "Personal tasks are saved in this dashboard.";
+    $("#attention-source").value = attentionSource;
+    $("#attention-count").textContent = `${rows.length} follow-up${rows.length === 1 ? "" : "s"} available${attentionSource === "All" ? "" : " · " + attentionSource}`;
+    $("#attention-status").innerHTML = view.sources.map(source => {
+      const current = source.status === "connected";
+      const label = current ? "Up to date" : source.status === "stale" ? "Saved information · refresh needed" : source.status === "loading" ? "Loading…" : "Information unavailable";
+      return `<div class="attention-source-status ${current ? "" : "attention-warning"}"><strong>${source.name}</strong><span>${label}${source.generated_at ? " · " + timestamp(source.generated_at) : ""}</span>${!current && source.message ? `<small>${esc(source.message)}</small>` : ""}${source.limited.length ? `<small>Some queues show only their first five records. Open ${source.name} for the full list.</small>` : ""}</div>`;
+    }).join("");
+    $("#attention-list").innerHTML = rows.length ? rows.slice(0, attentionLimit).map(item => `<div class="task-row attention-row"><span class="attention-priority level-${item.priority}">${item.priority === 1 ? "Review first" : item.priority === 2 ? "Next" : "Follow-up"}</span>${item.taskId != null ? `<label class="task-check"><input type="checkbox" data-complete="${item.taskId}" aria-label="Complete ${attr(item.title)}"></label>` : ""}<div class="task-copy"><strong>${esc(item.title)}</strong><div class="task-meta"><span class="attention-source-label">${item.source}</span><span>${esc(item.reason)}</span>${item.stale ? '<span class="overdue">Saved information</span>' : ""}</div><small class="muted">${[item.detail, item.workspace, item.due ? `${item.dueLabel || "Task due"} ${dueText(item.due)}` : null, item.amount != null ? `${item.amountLabel} ${money(item.amount)}` : null].filter(Boolean).map(esc).join(" · ")}</small></div><div class="attention-actions">${item.url ? `<a class="text-link" href="${attr(item.url)}" target="_blank" rel="noopener noreferrer">${item.source === "Tasks" ? "Open" : "Open " + item.source} ↗</a>` : ""}${item.taskId != null ? `<button class="icon-button" data-edit-task="${item.taskId}" aria-label="Edit ${attr(item.title)}">✎</button>` : ""}</div></div>`).join("") : `<div class="empty-panel"><span class="empty-mark" aria-hidden="true">✓</span><div><strong>No follow-ups in the available information</strong><p>Check the connection status above before treating this as a clear list.</p></div></div>`;
+    $("#attention-more").classList.toggle("hidden", rows.length <= attentionLimit);
+    $("#attention-more").textContent = `Show next ${Math.max(0, Math.min(12, rows.length - attentionLimit))} follow-ups`;
+    $("#attention-note").textContent = "Each row is a follow-up, so the same wedding can appear for different actions. Invoice balances can include future instalments; check Booking before requesting payment.";
+    bindTaskActions();
   }
   function renderConnections() {
     const definitions = [
@@ -137,7 +161,7 @@
     $("#due-count").textContent = open.filter(task => task.due_date && task.due_date <= localDate()).length;
     $("#favourite-count").textContent = state.links.filter(link => link.active && link.pinned).length;
     $("#today-summary").classList.toggle("hidden", !today || state.editing || searching);
-    $("#tasks-panel").classList.toggle("hidden", state.editing || (state.page === "All apps" && !searching));
+    $("#tasks-panel").classList.toggle("hidden", state.editing || (today && !state.manageTasks && !searching) || (state.page === "All apps" && !searching));
     $("#systems-panel").classList.toggle("hidden", state.page !== "Systems" || state.editing);
     $("#activity-panel").classList.toggle("hidden", !today || state.editing || searching);
     const links = pageLinks().filter(link => !today || searching || link.pinned);
@@ -152,7 +176,7 @@
     filter.innerHTML = ["All", ...categories()].map(category => `<option ${state.category === category ? "selected" : ""}>${esc(category)}</option>`).join("");
     $$("[data-edit-link]").forEach(button => button.onclick = () => openLinkModal(state.links.find(link => link.id === Number(button.dataset.editLink))));
     $$("[data-move]").forEach(button => button.onclick = () => moveLink(Number(button.dataset.id), button.dataset.move));
-    renderTasks(); renderConnections(); renderServices(); renderBooking(); renderPlanner();
+    renderTasks(); renderConnections(); renderServices(); renderBooking(); renderPlanner(); renderAttention();
     $("#activity-list").innerHTML = state.activity.length ? state.activity.slice(0, 4).map(item => `<div class="activity-row"><span>${esc(item.detail)}</span><time datetime="${attr(item.created_at)}">${timestamp(item.created_at)}</time></div>`).join("") : '<p class="muted">Your dashboard changes and tasks will appear here.</p>';
     $("#mobile-home").classList.toggle("active", today);
     $("#mobile-apps").classList.toggle("active", state.page === "All apps");
@@ -194,7 +218,7 @@
     loadingPlanner = true; $("#refresh-planner").disabled = true;
     try { state.planner = await api(force ? "/api/planner/refresh" : "/api/planner/overview", force ? {method:"POST"} : {}); }
     catch (error) { state.planner = {...state.planner, status:state.planner?.data ? "stale" : "error", message:"Planner information could not be refreshed."}; }
-    finally { loadingPlanner = false; $("#refresh-planner").disabled = false; renderPlanner(); renderConnections(); }
+    finally { loadingPlanner = false; $("#refresh-planner").disabled = false; renderPlanner(); renderConnections(); renderAttention(); }
   }
   async function loadBooking(force = false) {
     if (loadingBooking) return;
@@ -202,7 +226,7 @@
     $("#refresh-booking").disabled = true;
     try { state.booking = await api(force ? "/api/booking/refresh" : "/api/booking/overview", force ? {method:"POST"} : {}); }
     catch (error) { state.booking = {...state.booking, status:state.booking?.data ? "stale" : "error", message:"Booking information could not be refreshed."}; }
-    finally { loadingBooking = false; $("#refresh-booking").disabled = false; renderBooking(); renderConnections(); }
+    finally { loadingBooking = false; $("#refresh-booking").disabled = false; renderBooking(); renderConnections(); renderAttention(); }
   }
   function toggleEditing(on = !state.editing) { state.editing = on; if (on) { state.page = "All apps"; state.category = "All"; state.search = ""; $("#search").value = ""; } render(); }
   function openTaskModal(task = null) {
@@ -341,8 +365,8 @@
 
   async function loadDashboard() {
     const [data, tasks, services, activity] = await Promise.all([api("/api/dashboard"), api("/api/tasks"), api("/api/services"), api("/api/activity?limit=4")]);
-    Object.assign(state, {links: data.links, settings: data.settings, tasks, services, activity});
-    $("#build-label").textContent = "Version 1.3.0";
+    Object.assign(state, {links: data.links, settings: data.settings, tasks, services, activity, tasksError: false});
+    $("#build-label").textContent = "Version 1.4.0";
     render();
     loadBooking(); loadPlanner();
   }
@@ -379,6 +403,17 @@
       try { state.services = await api("/api/services/check", {method: "POST"}); renderServices(); toast("Service checks updated"); }
       catch (error) { toast(error.message, "error"); }
       finally { checking = false; button.disabled = false; button.textContent = "Check services"; }
+    };
+    $("#attention-manage-tasks").onclick = () => { state.manageTasks = !state.manageTasks; render(); };
+    $("#attention-add-task").onclick = () => openTaskModal();
+    $("#attention-source").onchange = event => { attentionSource = event.target.value; attentionLimit = 12; renderAttention(); };
+    $("#attention-more").onclick = () => { attentionLimit += 12; renderAttention(); };
+    $("#refresh-attention").onclick = async () => {
+      const button = $("#refresh-attention"); button.disabled = true;
+      try { state.tasks = await api("/api/tasks"); state.tasksError = false; }
+      catch (error) { state.tasksError = true; toast(error.message, "error"); }
+      try { await Promise.all([loadBooking(true), loadPlanner(true)]); }
+      finally { button.disabled = false; render(); }
     };
     $("#refresh-planner").onclick = () => loadPlanner(true);
     $("#refresh-booking").onclick = () => loadBooking(true);
