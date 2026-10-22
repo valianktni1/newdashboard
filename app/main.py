@@ -576,5 +576,5 @@ async def spa_fallback(request: Request, exc: HTTPException):
 from .workspace import router as workspace_router
 app.include_router(workspace_router)
 
-from .booking_connection import router as booking_router
-app.include_router(booking_router)
+from .booking_connection import register_booking_routes
+register_booking_routes(app, current_admin, require_same_origin)

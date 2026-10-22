@@ -6,16 +6,16 @@ import threading
 import time
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
-from urllib.request import Request as URLRequest, ProxyHandler, build_opener
+from urllib.request import Request as URLRequest, ProxyHandler, build_opener, HTTPRedirectHandler
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import Depends, Request, Response
 from pydantic import AwareDatetime, BaseModel, Field, ValidationError
 from typing import Literal
 
-from .main import current_admin, require_same_origin
-from .workspace import NoRedirect
+class NoRedirect(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
 
-router = APIRouter(prefix="/api/booking")
 BOOKING_URL = os.getenv("DASHBOARD_BOOKING_URL", "https://booking.weddingsbymark.uk").rstrip("/")
 BOOKING_KEY = os.getenv("DASHBOARD_BOOKING_KEY", "")
 parts = urlsplit(BOOKING_URL)
@@ -92,14 +92,16 @@ def booking_snapshot(force=False):
                 "checked_at": CACHE["checked_at"], "data": data, "source_url": BOOKING_URL}
 
 
-@router.get("/overview")
-def overview(response: Response, _: dict = Depends(current_admin)):
-    response.headers["Cache-Control"] = "private, no-store"
-    return booking_snapshot()
+def register_booking_routes(app, current_admin, require_same_origin):
+    # Dependencies are supplied by the app, so this module can also be imported
+    # independently by the installer without importing the app back into itself.
+    @app.get("/api/booking/overview")
+    def overview(response: Response, _: dict = Depends(current_admin)):
+        response.headers["Cache-Control"] = "private, no-store"
+        return booking_snapshot()
 
-
-@router.post("/refresh")
-def refresh(request: Request, response: Response, _: dict = Depends(current_admin)):
-    require_same_origin(request)
-    response.headers["Cache-Control"] = "private, no-store"
-    return booking_snapshot(force=True)
+    @app.post("/api/booking/refresh")
+    def refresh(request: Request, response: Response, _: dict = Depends(current_admin)):
+        require_same_origin(request)
+        response.headers["Cache-Control"] = "private, no-store"
+        return booking_snapshot(force=True)

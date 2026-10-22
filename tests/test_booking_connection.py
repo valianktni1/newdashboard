@@ -1,6 +1,9 @@
 from datetime import datetime, timezone, timedelta
 from urllib.error import HTTPError
 import json
+import os
+import subprocess
+import sys
 
 from fastapi.testclient import TestClient
 from test_dashboard import app, login, reset_data
@@ -15,6 +18,17 @@ def snapshot():
 
 def clean_cache():
     booking.CACHE.update(attempted=None,data=None,error=None,checked_at=None)
+
+
+def test_installer_can_import_snapshot_first_in_a_fresh_process():
+    environment={**os.environ,'DASHBOARD_BOOKING_KEY':''}
+    code=('from app.booking_connection import booking_snapshot; '
+          'assert booking_snapshot()["status"] == "not_connected"; '
+          'from app.main import app; '
+          'assert any(route.path == "/api/booking/overview" for route in app.routes); '
+          'assert any(route.path == "/api/booking/refresh" for route in app.routes)')
+    result=subprocess.run([sys.executable,'-c',code],env=environment,capture_output=True,text=True,timeout=15)
+    assert result.returncode==0,result.stderr
 
 
 def test_booking_is_private_opt_in_cached_and_never_returns_key(monkeypatch):
