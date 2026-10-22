@@ -1,5 +1,9 @@
 # Weddings By Mark Control Centre
 
+Version 1.2.0 connects the Booking app through a separate read-only summary feed.
+See `CONNECT-BOOKING.md` for the two-app update, private key setup, backups and
+rollback. Other business connections remain unconfigured.
+
 Version 1.1.0 adds a Today page, saved tasks, business workspaces, the couples'
 planner shortcut, light/dark themes and explicit HTTP availability checks.
 Business data panels show “Not connected” until real integrations are added.
