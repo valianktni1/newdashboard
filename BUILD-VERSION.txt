@@ -1,6 +1,9 @@
 Weddings By Mark Control Centre
-Version: 1.1.0
-Build: 2026.10.21-daily-workspace-v1.1.0
+Version: 1.2.0
+Build: 2026.10.22-booking-connection-v1.2.0
+
+Read-only Booking integration: live queues, next five weddings, timestamps,
+safe server-side credentials and stale-data handling. See CONNECT-BOOKING.md.
 
 Daily workspace release: Today, saved tasks, business workspaces, planner
 shortcut, HTTP availability checks and light/dark themes.

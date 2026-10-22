@@ -22,8 +22,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 
-BUILD = "2026.10.21-daily-workspace-v1.1.0"
-APP_VERSION = "1.1.0"
+BUILD = "2026.10.22-booking-connection-v1.2.0"
+APP_VERSION = "1.2.0"
 DATA_DIR = Path(os.getenv("DASHBOARD_DATA_DIR", "/data"))
 DATABASE_PATH = DATA_DIR / "control-centre.db"
 STATIC_DIR = Path(__file__).parent / "static"
@@ -575,3 +575,6 @@ async def spa_fallback(request: Request, exc: HTTPException):
 
 from .workspace import router as workspace_router
 app.include_router(workspace_router)
+
+from .booking_connection import router as booking_router
+app.include_router(booking_router)

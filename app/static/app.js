@@ -8,6 +8,10 @@
   const categoryIcons = {Today: "⌂", "Weddings By Mark": "W", "Ivory Digital": "ID", Marketing: "↗", Accounts: "£", Systems: "▦", "All apps": "◇"};
   let lastFocus;
   let checking = false;
+  let loadingBooking = false;
+  let bookingQueue = "new_enquiries";
+  const bookingLabels = {new_enquiries: "Enquiries to review", quotes_waiting: "Quotes awaiting a decision", overdue_payments: "Overdue invoices", payments_due: "Invoices due within 60 days", accepted_payment: "Accepted · first payment needed", forms_waiting: "Booking forms outstanding", agreements_waiting: "Agreements outstanding"};
+  const money = pennies => new Intl.NumberFormat("en-GB", {style:"currency", currency:"GBP"}).format(pennies / 100);
   const dateFormat = new Intl.DateTimeFormat("en-GB", {day: "numeric", month: "short"});
   const timeFormat = new Intl.DateTimeFormat("en-GB", {day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"});
   function localDate() { const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`; }
@@ -104,7 +108,8 @@
     $("#connections-panel").classList.toggle("hidden", !relevant.length || state.editing || Boolean(state.search));
     $("#connection-grid").innerHTML = relevant.map(item => {
       const link = state.links.find(link => link.active && item.names.includes(link.name));
-      return `<div class="connection-card"><div class="connection-title"><h3>${esc(item.title)}</h3><span class="badge">Not connected</span></div><p>${esc(item.description)}</p><div class="connection-bottom"><span class="muted">Live figures unavailable</span>${link ? `<a href="${attr(link.url)}" ${link.open_new_tab ? 'target="_blank" rel="noopener noreferrer"' : ""}>Open app ↗</a>` : ""}</div></div>`;
+      const connected = item.title === "Enquiries & weddings" && state.booking?.data;
+      return `<div class="connection-card"><div class="connection-title"><h3>${esc(item.title)}</h3><span class="badge">${connected ? state.booking.status === "connected" ? "Connected" : "Saved information" : "Not connected"}</span></div><p>${esc(item.description)}</p><div class="connection-bottom"><span class="muted">${connected ? "See booking overview above" : "Live figures unavailable"}</span>${link ? `<a href="${attr(link.url)}" ${link.open_new_tab ? 'target="_blank" rel="noopener noreferrer"' : ""}>Open app ↗</a>` : ""}</div></div>`;
     }).join("");
   }
   function renderServices() {
@@ -143,12 +148,36 @@
     filter.innerHTML = ["All", ...categories()].map(category => `<option ${state.category === category ? "selected" : ""}>${esc(category)}</option>`).join("");
     $$("[data-edit-link]").forEach(button => button.onclick = () => openLinkModal(state.links.find(link => link.id === Number(button.dataset.editLink))));
     $$("[data-move]").forEach(button => button.onclick = () => moveLink(Number(button.dataset.id), button.dataset.move));
-    renderTasks(); renderConnections(); renderServices();
+    renderTasks(); renderConnections(); renderServices(); renderBooking();
     $("#activity-list").innerHTML = state.activity.length ? state.activity.slice(0, 4).map(item => `<div class="activity-row"><span>${esc(item.detail)}</span><time datetime="${attr(item.created_at)}">${timestamp(item.created_at)}</time></div>`).join("") : '<p class="muted">Your dashboard changes and tasks will appear here.</p>';
     $("#mobile-home").classList.toggle("active", today);
     $("#mobile-apps").classList.toggle("active", state.page === "All apps");
   }
   function selectPage(page) { state.page = page; state.category = "All"; state.editing = false; state.search = ""; $("#search").value = ""; render(); closeSidebar(); }
+  function renderBooking() {
+    $("#booking-panel").classList.toggle("hidden", !["Today", "Weddings By Mark"].includes(state.page) || state.editing || Boolean(state.search));
+    const result = state.booking;
+    if (!result) return;
+    const data = result.data;
+    if (!data) {
+      $("#booking-content").innerHTML = `<div class="empty-panel"><div><strong>${result.status === "not_connected" ? "Ready to connect your bookings" : "Booking information unavailable"}</strong><p>${esc(result.message)}</p><p>Your personal tasks and app shortcuts are still available.</p></div></div>`;
+      return;
+    }
+    const row = item => `<a class="booking-row" href="${attr(result.source_url + item.path)}" target="_blank" rel="noopener noreferrer"><div><strong>${esc(item.title)}</strong><small>${item.venue ? esc(item.venue) + " · " : ""}${item.event_date ? "Wedding " + dueText(item.event_date) : "Wedding date not set"}${item.due_date ? " · Due " + dueText(item.due_date) : ""}</small></div>${item.amount_pence != null ? `<span>${money(item.amount_pence)}<small>${bookingQueue === "accepted_payment" ? "first payment" : "invoice balance"}</small></span>` : '<span aria-hidden="true">↗</span>'}</a>`;
+    const group = data.queues[bookingQueue];
+    $("#booking-content").innerHTML = `<div class="booking-freshness ${result.status === "stale" ? "overdue" : ""}"><strong>${result.status === "connected" ? "Connected · read only" : "Saved information · refresh needed"}</strong><span>Updated ${timestamp(data.generated_at)}</span>${result.status !== "connected" ? `<span>${esc(result.message)}</span>` : ""}</div>
+      <div class="summary-grid booking-summary">${["new_enquiries","quotes_waiting","overdue_payments"].map(key => `<div class="summary-card"><span>${esc(bookingLabels[key])}</span><strong>${data.queues[key].count}</strong><small>${key === "overdue_payments" ? money(data.queues[key].total_amount_pence) + " remaining on invoices" : "In your booking app"}</small></div>`).join("")}</div>
+      <div class="booking-details"><div><label class="booking-filter">Needs attention<select id="booking-queue" aria-label="Booking queue">${Object.keys(bookingLabels).map(key => `<option value="${key}" ${key === bookingQueue ? "selected" : ""}>${esc(bookingLabels[key])} (${data.queues[key].count})</option>`).join("")}</select></label>${group.items.length ? group.items.map(row).join("") : '<p class="muted">No items in this queue.</p>'}${group.count > 5 ? `<p class="muted">Showing 5 of ${group.count}. Open Booking for the full list.</p>` : ""}${["overdue_payments","payments_due"].includes(bookingQueue) ? '<p class="muted">Amounts show the remaining invoice balance, including future instalments. Check the payment schedule in Booking before requesting payment.</p>' : ""}</div><div><h3>Your next five weddings</h3>${data.upcoming_weddings.length ? data.upcoming_weddings.map(row).join("") : '<p class="muted">No upcoming confirmed weddings.</p>'}</div></div><p class="muted">Weddings By Mark only · test, archived and cancelled records excluded · open a record to make changes.</p>`;
+    $("#booking-queue").onchange = event => { bookingQueue = event.target.value; renderBooking(); };
+  }
+  async function loadBooking(force = false) {
+    if (loadingBooking) return;
+    loadingBooking = true;
+    $("#refresh-booking").disabled = true;
+    try { state.booking = await api(force ? "/api/booking/refresh" : "/api/booking/overview", force ? {method:"POST"} : {}); }
+    catch (error) { state.booking = {...state.booking, status:state.booking?.data ? "stale" : "error", message:"Booking information could not be refreshed."}; }
+    finally { loadingBooking = false; $("#refresh-booking").disabled = false; renderBooking(); renderConnections(); }
+  }
   function toggleEditing(on = !state.editing) { state.editing = on; if (on) { state.page = "All apps"; state.category = "All"; state.search = ""; $("#search").value = ""; } render(); }
   function openTaskModal(task = null) {
     showModal(`<div class="modal-head"><div><p class="eyebrow">PERSONAL TASK</p><h2 id="modal-title">${task ? "Edit task" : "What needs doing?"}</h2></div><button type="button" class="modal-close" aria-label="Close">×</button></div><form id="task-form" class="form-grid"><label class="full">Task<input id="task-title" value="${attr(task?.title || "")}" placeholder="Follow up a quote, edit a wedding…" maxlength="180" required></label><label>Workspace<select id="task-workspace">${areas.map(area => `<option ${area === (task?.workspace || (areas.includes(state.page) ? state.page : "Weddings By Mark")) ? "selected" : ""}>${esc(area)}</option>`).join("")}</select></label><label>Due date<input type="date" id="task-date" value="${attr(task?.due_date || "")}"></label><label>Priority<select id="task-priority"><option value="normal">Normal</option><option value="high" ${task?.priority === "high" ? "selected" : ""}>High</option></select></label><label>Related page (optional)<input type="url" id="task-url" maxlength="500" value="${attr(task?.url || "")}" placeholder="https://…"></label><div class="modal-actions full">${task ? '<button type="button" id="delete-task" class="secondary danger-button">Delete task</button>' : "<span></span>"}<div><button type="button" class="secondary modal-close-secondary">Cancel</button><button type="submit" class="primary">Save task</button></div></div></form>`);
@@ -287,8 +316,9 @@
   async function loadDashboard() {
     const [data, tasks, services, activity] = await Promise.all([api("/api/dashboard"), api("/api/tasks"), api("/api/services"), api("/api/activity?limit=4")]);
     Object.assign(state, {links: data.links, settings: data.settings, tasks, services, activity});
-    $("#build-label").textContent = "Version 1.1.0";
+    $("#build-label").textContent = "Version 1.2.0";
     render();
+    loadBooking();
   }
   function setTheme(theme) { document.documentElement.dataset.theme = theme; $("#theme-toggle").setAttribute("aria-label", `Switch to ${theme === "dark" ? "light" : "dark"} theme`); try { localStorage.setItem("wbm-theme", theme); } catch (_) {} }
   function bind() {
@@ -324,6 +354,8 @@
       catch (error) { toast(error.message, "error"); }
       finally { checking = false; button.disabled = false; button.textContent = "Check services"; }
     };
+    $("#refresh-booking").onclick = () => loadBooking(true);
+    setInterval(() => { if (!document.hidden && !$("#dashboard-app").classList.contains("hidden")) loadBooking(); }, 60000);
     document.addEventListener("click", event => { if (!event.target.closest("#account-menu") && !event.target.closest("#user-menu")) { $("#account-menu").classList.add("hidden"); $("#user-menu").setAttribute("aria-expanded", "false"); } });
     document.addEventListener("keydown", event => {
       if (event.key === "Escape") { closeModal(); closeSidebar(); $("#account-menu").classList.add("hidden"); }
