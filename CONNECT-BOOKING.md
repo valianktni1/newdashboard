@@ -28,6 +28,29 @@ public booking origin; redirects are not followed when sending the key.
 
 ## Install on the existing TrueNAS stacks
 
+### Private booking repository
+
+Docker cannot fetch a private GitHub build context without credentials. A failed
+build at step 2 leaves the old apps running and does not pair or change their
+settings. Do not make the repository public just to run the installer.
+
+Use a source bundle containing the exact tested `bookingsystem2026` and
+`newdashboard` source trees and an `install.sh` wrapper. Copy it to the NAS,
+extract it into a new temporary directory and run its wrapper. The wrapper sets
+`WBM_BOOKING_SOURCE`, `WBM_DASHBOARD_SOURCE` and `WBM_CONNECT_HELPER` to the bundled
+files. Temporary Compose overrides select these local build contexts for the
+build, image verification and startup. The live Compose files are preserved,
+and startup uses `--no-build` so it cannot retry the private GitHub fetch.
+
+The source package contains application code only, with no `.env`, database,
+runtime storage or Git credentials. Keep the package on your private NAS share.
+Public base images and Python dependencies still need normal internet access.
+Future source updates need a new bundle or properly configured GitHub build
+authentication; this does not change the repository's visibility or grant it
+public access.
+
+### Existing authenticated GitHub builds
+
 After both repository updates are merged, run in the TrueNAS root shell:
 
 ```bash
