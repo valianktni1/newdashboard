@@ -8,9 +8,9 @@
   <title>Weddings By Mark Control Centre</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/static/app.css?v=attention-v1.4.0">
-  <script src="/static/attention.js?v=attention-v1.4.0" defer></script>
-  <script src="/static/app.js?v=attention-v1.4.0" defer></script>
+  <link rel="stylesheet" href="/static/app.css?v=favourites-v1.4.1">
+  <script src="/static/attention.js?v=favourites-v1.4.1" defer></script>
+  <script src="/static/app.js?v=favourites-v1.4.1" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to workspace</a>
@@ -36,7 +36,7 @@
       <div class="sidebar-spacer"></div>
       <button id="edit-toggle" class="sidebar-action"><span>✎</span><div><strong>Edit dashboard</strong><small>Add, change or rearrange</small></div></button>
       <button id="open-settings" class="sidebar-action"><span>⚙</span><div><strong>Settings</strong><small>Heading and security</small></div></button>
-      <div class="sidebar-footer"><span class="privacy-icon" aria-hidden="true">◇</span><div><strong>Private workspace</strong><small id="build-label">Version 1.4.0</small></div></div>
+      <div class="sidebar-footer"><span class="privacy-icon" aria-hidden="true">◇</span><div><strong>Private workspace</strong><small id="build-label">Version 1.4.1</small></div></div>
     </aside>
 
     <main id="main-content">
@@ -56,6 +56,15 @@
           <div><p class="eyebrow" id="workspace-label">TODAY / YOUR BUSINESS AT A GLANCE</p><h1 id="greeting">Welcome, Mark.</h1><p id="dashboard-subtitle">Every part of the business, one click away.</p></div>
           <span id="today-label-mobile" class="date-note"></span>
         </section>
+
+        <section id="edit-banner" class="edit-banner hidden">
+          <div><span>✦</span><div><strong>Dashboard editing is on</strong><p>Open any shortcut to change it, or use the arrows to rearrange the order.</p></div></div>
+          <div><button id="add-link-banner" class="secondary">＋ Add shortcut</button><button id="finish-editing" class="primary">Finish editing</button></div>
+        </section>
+
+        <div class="section-heading"><div><p class="eyebrow" id="section-eyebrow">QUICK ACCESS</p><h2 id="section-title">Your favourite apps</h2></div><div class="inline-actions"><label id="category-filter-label" class="hidden">Category <select id="category-filter" aria-label="Filter apps by category"></select></label><button id="add-link-top" class="secondary">＋ Add shortcut</button></div></div>
+        <section id="link-grid" class="link-grid" aria-live="polite"></section>
+        <section id="empty-state" class="empty-state hidden"><span>⌕</span><h2>No shortcuts found</h2><p>Try another search or add a new service to your dashboard.</p><button id="empty-add" class="primary">＋ Add shortcut</button></section>
 
         <section id="today-summary" class="summary-grid" aria-label="Your task summary">
           <div class="summary-card"><span>Open tasks</span><strong id="task-count">0</strong><small>Across your workspaces</small></div>
@@ -93,14 +102,6 @@
           <div id="connection-grid" class="connection-grid"></div>
         </section>
 
-        <section id="edit-banner" class="edit-banner hidden">
-          <div><span>✦</span><div><strong>Dashboard editing is on</strong><p>Open any shortcut to change it, or use the arrows to rearrange the order.</p></div></div>
-          <div><button id="add-link-banner" class="secondary">＋ Add shortcut</button><button id="finish-editing" class="primary">Finish editing</button></div>
-        </section>
-
-        <div class="section-heading"><div><p class="eyebrow" id="section-eyebrow">QUICK ACCESS</p><h2 id="section-title">Your favourite apps</h2></div><div class="inline-actions"><label id="category-filter-label" class="hidden">Category <select id="category-filter" aria-label="Filter apps by category"></select></label><button id="add-link-top" class="secondary">＋ Add shortcut</button></div></div>
-        <section id="link-grid" class="link-grid" aria-live="polite"></section>
-        <section id="empty-state" class="empty-state hidden"><span>⌕</span><h2>No shortcuts found</h2><p>Try another search or add a new service to your dashboard.</p><button id="empty-add" class="primary">＋ Add shortcut</button></section>
         <section id="systems-panel" class="workspace-section hidden">
           <div class="section-heading"><div><p class="eyebrow">AVAILABILITY</p><h2>Service checks</h2></div><button id="check-services" class="secondary">Check services</button></div>
           <p class="muted">Checks run from your server and confirm an HTTP response only. They do not verify backups, storage or data feeds. Results are cached for one minute.</p>

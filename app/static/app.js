@@ -366,7 +366,7 @@
   async function loadDashboard() {
     const [data, tasks, services, activity] = await Promise.all([api("/api/dashboard"), api("/api/tasks"), api("/api/services"), api("/api/activity?limit=4")]);
     Object.assign(state, {links: data.links, settings: data.settings, tasks, services, activity, tasksError: false});
-    $("#build-label").textContent = "Version 1.4.0";
+    $("#build-label").textContent = "Version 1.4.1";
     render();
     loadBooking(); loadPlanner();
   }

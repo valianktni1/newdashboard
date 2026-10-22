@@ -131,3 +131,11 @@ It recreates Dashboard alone. Startup checks require v1.4.0 and preserve both
 feeds' previously connected status. A failed live check triggers an image/config
 rollback and preserves live data. Docker/NAS build and visual browser checks
 were not performed locally; the installer performs the build/live checks.
+
+## Favourite apps first (v1.4.1)
+
+The shortcut heading, pinned app cards and their editing controls now sit directly
+below the welcome message, before the task summary and combined attention list.
+The order in the document also sets the keyboard and mobile reading order.
+No task, feed, key or database behaviour changes. The dashboard-only installer
+now verifies v1.4.1; Booking and Planner keep running with their existing settings.
