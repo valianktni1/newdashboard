@@ -93,7 +93,7 @@ echo '5/6 Starting both updated apps...'
 echo '6/6 Checking the live read-only connection...'
 ready=0
 for attempt in {1..20}; do
-  if "${dashboard[@]}" exec -T dashboard python -c 'from app.booking_connection import booking_snapshot; s=booking_snapshot(); assert s["status"]=="connected",s["message"]; print("Read-only booking connection is working")'; then
+  if "${dashboard[@]}" exec -T dashboard python -c 'import json,urllib.request; h=json.load(urllib.request.urlopen("http://127.0.0.1:8080/api/health",timeout=4)); assert h["status"]=="ok"; from app.booking_connection import booking_snapshot; s=booking_snapshot(); assert s["status"]=="connected",s["message"]; print("Dashboard is responding and the read-only booking connection is working")'; then
     ready=1; break
   fi
   sleep 3
